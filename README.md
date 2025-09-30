@@ -6,7 +6,7 @@ Wildberries education
  **Makefile**
 
 ```bash
-git clone https://github.com/xxxx/xxxx L0
-cd L0
+git clone https://github.com/xxxx/xxxx project
+cd project/    ##L0 or L1 .....
 make
 ```
