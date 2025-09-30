@@ -1,0 +1,96 @@
+version: '3'
+
+services:
+  postgresql:
+    build:
+      context: ..
+      dockerfile: ./requirements/postgresql/dockerfile
+    image: db
+    container_name: db_con
+    ports:
+      - "5432:5432"
+    env_file:
+      - .env
+    environment:
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASS}
+      POSTGRES_DB: ${DB_NAME}
+    networks:
+      - task
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  migrate:
+    build:
+      context: ..
+      dockerfile: ./requirements/migrate/dockerfile
+    container_name: migrate_con
+    depends_on:
+      - postgresql
+    env_file:
+      - .env
+    networks:
+      - task
+    restart: "no"
+
+  kafka:
+    build:
+      context: ..
+      dockerfile: ./requirements/kafka/dockerfile
+    container_name: kafka_con
+    ports:
+      - "9092:9092"       # для контейнеров внутри сети Docker
+      - "29092:29092"     # для доступа с хоста (localhost)
+    env_file:
+      - .env
+    networks:
+      - task
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "nc -z localhost 9092"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  kafka-ui:
+    image: provectuslabs/kafka-ui:latest
+    container_name: kafka_ui_con
+    ports:
+      - "8080:8080"
+    environment:
+      KAFKA_CLUSTERS_0_NAME: local
+      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:9092
+      KAFKA_CLUSTERS_0_ZOOKEEPER: ""  # если KRaft mode, zookeeper не нужен
+    depends_on:
+      - kafka
+    networks:
+      - task
+    restart: unless-stopped
+
+
+  app:
+    build:
+      context: ..
+      dockerfile: ./requirements/app_consumer/dockerfile
+    container_name: app_con
+    ports:
+      - "8081:8081"
+    depends_on:
+      kafka:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+    env_file:
+      - .env
+    networks:
+      - task
+    restart: unless-stopped
+
+
+networks:
+  task:
+    driver: bridge 

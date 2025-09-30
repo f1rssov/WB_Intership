@@ -1,0 +1,5 @@
+FROM apache/kafka:4.1.0
+
+USER root
+RUN mkdir -p /kafka-logs && chown -R appuser:appuser /kafka-logs
+USER appuser

@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Информация о заказе</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 900px;
+            margin: 40px auto;
+        }
+        input, button {
+            padding: 8px;
+            font-size: 16px;
+            margin-right: 8px;
+        }
+        button {
+            cursor: pointer;
+        }
+        h2 {
+            margin-top: 30px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+        }
+        th {
+            background-color: #f0f0f0;
+        }
+        .error {
+            color: red;
+            font-weight: bold;
+        }
+        .section {
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Поиск заказа по ID</h1>
+    <input type="text" id="orderIdInput" placeholder="Введите order UID">
+    <button id="searchBtn">Найти</button>
+
+    <div id="result"></div>
+
+    <script>
+        const searchBtn = document.getElementById('searchBtn');
+        const orderIdInput = document.getElementById('orderIdInput');
+        const resultDiv = document.getElementById('result');
+
+        searchBtn.addEventListener('click', async () => {
+            const orderUID = orderIdInput.value.trim();
+            if (!orderUID) {
+                resultDiv.innerHTML = '<p class="error">Введите ID заказа</p>';
+                return;
+            }
+
+            try {
+                resultDiv.innerHTML = 'Загрузка...';
+                const response = await fetch(`/order/${orderUID}`);
+                if (!response.ok) {
+                    const err = await response.json();
+                    resultDiv.innerHTML = `<p class="error">Ошибка: ${err.error}</p>`;
+                    return;
+                }
+
+                const order = await response.json();
+                renderOrder(order);
+            } catch (e) {
+                resultDiv.innerHTML = `<p class="error">Ошибка запроса: ${e.message}</p>`;
+            }
+        });
+
+        function renderOrder(order) {
+            let html = '';
+
+            // Основная информация о заказе
+            html += `<div class="section">
+                <h2>Basic information</h2>
+                <p><strong>Order UID:</strong> ${order.order_uid}</p>
+                <p><strong>Track Number:</strong> ${order.track_number}</p>
+                <p><strong>Entry:</strong> ${order.entry}</p>
+                <p><strong>Locale:</strong> ${order.locale}</p>
+                <p><strong>Date Created:</strong> ${order.date_created}</p>
+                <p><strong>Customer ID:</strong> ${order.customer_id}</p>
+            </div>`;
+
+            // Информация о доставке
+            html += `<div class="section">
+                <h2>Delivery</h2>
+                <p><strong>Name:</strong> ${order.delivery.name}</p>
+                <p><strong>Phone:</strong> ${order.delivery.phone}</p>
+                <p><strong>City:</strong> ${order.delivery.city}</p>
+                <p><strong>Address:</strong> ${order.delivery.address}</p>
+                <p><strong>Region:</strong> ${order.delivery.region}</p>
+                <p><strong>ZIP:</strong> ${order.delivery.zip}</p>
+                <p><strong>Email:</strong> ${order.delivery.email}</p>
+            </div>`;
+
+            // Информация об оплате
+            html += `<div class="section">
+                <h2>Оплата</h2>
+                <p><strong>Transaction:</strong> ${order.payment.transaction}</p>
+                <p><strong>Request ID:</strong> ${order.payment.request_id}</p>
+                <p><strong>Provider:</strong> ${order.payment.provider}</p>
+                <p><strong>Currency:</strong> ${order.payment.currency}</p>
+                <p><strong>Amount:</strong> ${order.payment.amount}</p>
+                <p><strong>Payment Date:</strong> ${order.payment.payment_dt}</p>
+                <p><strong>Bank:</strong> ${order.payment.bank}</p>
+                <p><strong>Delivery Cost:</strong> ${order.payment.delivery_cost}</p>
+                <p><strong>Goods Total:</strong> ${order.payment.goods_total}</p>
+                <p><strong>Custom Fee:</strong> ${order.payment.custom_fee}</p>
+            </div>`;
+
+            // Таблица товаров
+            html += `<div class="section">
+                <h2>Товары</h2>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>NMID</th>
+                            <th>Chrt ID</th>
+                            <th>Brand</th>
+                            <th>Price</th>
+                            <th>Total Price</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>`;
+
+            for (const item of order.items) {
+                html += `<tr>
+                    <td>${item.name}</td>
+                    <td>${item.nm_id}</td>
+                    <td>${item.chrt_id}</td>
+                    <td>${item.brand}</td>
+                    <td>${item.price}</td>
+                    <td>${item.total_price}</td>
+                    <td>${item.status}</td>
+                </tr>`;
+            }
+
+            html += `</tbody></table></div>`;
+
+            resultDiv.innerHTML = html;
+        }
+    </script>
+</body>
+</html>
